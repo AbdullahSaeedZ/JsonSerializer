@@ -4,10 +4,14 @@ A minimal C# JSON serializer built from scratch without any JSON libraries or ex
 
 ---
 
-## Output
+## Output Example
 
 <p align="center">
-  <img src="images/output.png" alt="Console Output Preview" />
+  <img width="1116" height="1007" alt="jsonUsage" src="https://github.com/user-attachments/assets/2e932f6d-3666-43c7-b4c9-3506f975b814" />
+</p>
+
+<p align="center">
+  <img width="1542" height="1328" alt="json" src="https://github.com/user-attachments/assets/f7543dab-9026-48e2-a570-896921209f92" />
 </p>
 
 ---
