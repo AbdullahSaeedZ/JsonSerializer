@@ -16,8 +16,7 @@ A minimal C# JSON serializer built from scratch without any JSON libraries or ex
 
 ---
 
-> **Note:** This project is for practice, not for production. It only supports primitive types, strings, and custom nested objects. It does not handle types like enums or structs.
-
+> **Note:** This project is built for educational purposes, not for production. It does not support every edge case and scenario, for example, custom structs and enums.
 ---
 
 ## Overview
@@ -79,7 +78,7 @@ By default, public fields and properties are serialized, while private members a
 * **`[JsonConstructor]`**: Explicitly selects which constructor to invoke during deserialization when a class defines multiple public constructors.
   ```csharp
   [JsonConstructor]
-  public Employee(string name, float salary)
+  public Employee(string? name, float salary, string? position, string? City)
   {
       // ...
   }
@@ -125,10 +124,10 @@ Converting an object or collection into formatted JSON follows a six-step proces
 
 4. **Handling the Value:**  
    - **Standard Values:** If the value is a primitive, string, decimal, or null, `AppendMemberValue()` formats it directly (adding quotes around strings, formatting booleans in lowercase, or writing numbers as-is).
-   - **User-Defined Types:** `HandleNestedObject()` checks if a property is a custom class (rather than a primitive or string). If it is not null, it recursively calls `GetOneObjectJson()` to serialize the inner object.
+   - **User-Defined Types:** `HandleNestedObject()` checks if a property is a custom class (excluding primitives, strings, and decimals). If it is not null, it recursively calls `GetOneObjectJson()` to serialize the inner object.
 
 5. **Formatting the Final Output:**  
-   If serializing a single object, the JSON string is closed with a closing brace (`}`). If serializing a group of objects, `ConvertElementsToJson()` places commas between each serialized object and wraps the entire group in square brackets (`[` and `]`).
+   If serializing a single object, the JSON string is closed with a closing brace (`}`). If serializing a group of objects, `ConvertElementsToJson()` skips null objects, places commas between each serialized object, and wraps the entire group in square brackets (`[` and `]`).
 
 6. **Writing to Disk Asynchronously:**  
    The formatted JSON string is written directly to the file using `StreamWriter.WriteAsync()` without blocking the calling thread.
@@ -139,14 +138,14 @@ Converting an object or collection into formatted JSON follows a six-step proces
 
 Reconstructing objects from raw JSON text follows a four-step process:
 
-1. **Reading the JSON Stream in Chunks:**  
-   `ReadOneObjectJson()` reads the file asynchronously in 4KB buffers rather than loading everything at once. It tracks quotation marks and brace depth (`{` and `}`) to yield one complete JSON object string at a time, which is then passed to `ConvertJsonToObject()` for object reconstruction.
+1. **Reading the JSON Stream:**  
+   For collections, `ReadOneObjectJson()` reads the file in 4KB chunks using an asynchronous buffer instead of loading the whole file at once. It tracks braces (`{` and `}`) and quotes to yield one complete object string at a time for `ConvertJsonToObject()`. For single objects, `DeserializeAsync()` reads the entire file directly using `StreamReader.ReadToEndAsync()`.
 
 2. **Splitting into Key-Value Pairs:**  
    `ConvertJsonToObject()` passes the JSON string to `ParseJsonContent()`, which removes outer braces and splits the object text into individual property pairs using `GetPairs()`, ignoring commas placed inside strings or nested structures.
 
 3. **Instantiating the Target Object:**  
-   With the parsed pairs prepared, `ConvertJsonToObject()` inspects the target type using `GetValidConstructor()` to select the appropriate constructor (favoring `[JsonConstructor]`, then parameterless, then parameterized). `InvokeInitialObject()` then creates a default instance ready to be populated.
+   With the parsed pairs prepared, `ConvertJsonToObject()` inspects the target type using `GetValidConstructor()` to select the constructor to invoke. It prioritizes a constructor marked with `[JsonConstructor]`, then a parameterless constructor, and finally a single parameterized constructor. If multiple constructors have `[JsonConstructor]`, or if multiple parameterized constructors exist without an attribute or parameterless option, it throws an `InvalidOperationException`. `InvokeInitialObject()` then creates a default instance ready to be populated.
 
 4. **Mapping Keys and Values to the Instantiated Object:**  
    `MapParsedValuesToObject()` iterates through the members retrieved via `ReflectionHelper.GetMembers()` and matches each member to its corresponding JSON key, checking for any custom names specified by `[JsonPropertyName]`. It then assigns the value based on the member type:
